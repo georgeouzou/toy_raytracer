@@ -1,5 +1,7 @@
 #include <iostream>
 #include <vector>
+
+#include <glm/glm.hpp>
 #include "stb_image_write.h"
 
 static const char *IMG_PATH = "C:\\Users\\George\\Desktop\\img.png";
@@ -13,12 +15,10 @@ int main()
 
 	for (int j = ny - 1; j >= 0; j--) {
 		for (int i = 0; i < nx; i++) {
-			float r = float(i) / float(nx);
-			float g = float(j) / float(ny);
-			float b = 0.2f;
-			img[cc++] = uint8_t(255.99f*r);
-			img[cc++] = uint8_t(255.99f*g);
-			img[cc++] = uint8_t(255.99f*b);
+			glm::vec3 color(float(i) / float(nx), float(j) / float(ny), 0.2f);
+			img[cc++] = uint8_t(255.99f*color.r);
+			img[cc++] = uint8_t(255.99f*color.g);
+			img[cc++] = uint8_t(255.99f*color.b);
 		}
 	}
 
