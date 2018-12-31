@@ -25,12 +25,27 @@ public:
 };
 
 
+namespace detail
+{
+
+static inline glm::vec3 random_in_unit_sphere(RandomGenerator<float> *generator)
+{
+	glm::vec3 p;
+	do {
+		p = 2.0f * glm::vec3(generator->gen(), generator->gen(), generator->gen()) - glm::vec3(1.0f);
+	} while (glm::length2(p) >= 1.0f);
+	return p;
+}
+
+}
+
 class Material
 {
 public:
 	virtual bool scatter(const Ray &ray_in, const HitRecord &rec, 
 		glm::vec3 &attenuation, Ray &scattered) const = 0;
 };
+
 
 class Lambertian : public Material
 {
@@ -41,20 +56,10 @@ public:
 	virtual bool scatter(const Ray &ray_in, const HitRecord &rec,
 		glm::vec3 &attenuation, Ray &scattered) const override
 	{
-		glm::vec3 target = rec.p + rec.normal + random_in_unit_sphere();
+		glm::vec3 target = rec.p + rec.normal + detail::random_in_unit_sphere(m_generator.get());
 		scattered = Ray(rec.p, target - rec.p);
 		attenuation = m_albedo;
 		return true;
-	}
-
-private:
-	glm::vec3 random_in_unit_sphere() const
-	{
-		glm::vec3 p;
-		do {
-			p = 2.0f * glm::vec3(m_generator->gen(), m_generator->gen(), m_generator->gen()) - glm::vec3(1.0f);
-		} while (glm::length2(p) >= 1.0f);
-		return p;
 	}
 
 private:
@@ -65,19 +70,22 @@ private:
 class Metal : public Material
 {
 public:
-	Metal(const glm::vec3 &a) : m_albedo(a) {}
+	Metal(const glm::vec3 &a, float fuzz, std::shared_ptr<RandomGenerator<float>> generator) 
+		: m_albedo(a), m_fuzz(fuzz), m_generator(generator) {}
 
 	virtual bool scatter(const Ray &ray_in, const HitRecord &rec,
 		glm::vec3 &attenuation, Ray &scattered) const override
 	{
 		glm::vec3 reflected = glm::reflect(glm::normalize(ray_in.direction()), rec.normal);
-		scattered = Ray(rec.p, reflected);
+		scattered = Ray(rec.p, reflected + m_fuzz * detail::random_in_unit_sphere(m_generator.get()));
 		attenuation = m_albedo;
 		return (glm::dot(scattered.direction(), rec.normal) > 0.0f);
 	}
 
 private:
 	glm::vec3 m_albedo;
+	float m_fuzz;
+	std::shared_ptr<RandomGenerator<float>> m_generator;
 };
 
 

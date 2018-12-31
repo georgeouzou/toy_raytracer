@@ -44,9 +44,9 @@ int main()
 
 	std::vector<std::shared_ptr<Material>> materials = {
 		std::make_shared<Lambertian>(glm::vec3(0.8f, 0.3f, 0.3f), rand_gen),
-		std::make_shared<Lambertian>(glm::vec3(0.8f, 0.3f, 0.3f), rand_gen),
-		std::make_shared<Metal>(glm::vec3(0.8f, 0.6f, 0.2f)),
-		std::make_shared<Metal>(glm::vec3(0.8f, 0.8f, 0.8f)),
+		std::make_shared<Lambertian>(glm::vec3(0.8f, 0.8f, 0.0f), rand_gen),
+		std::make_shared<Metal>(glm::vec3(0.8f, 0.6f, 0.2f), 1.0, rand_gen),
+		std::make_shared<Metal>(glm::vec3(0.8f, 0.8f, 0.8f), 0.3, rand_gen),
 	};
 
 	std::vector<std::unique_ptr<Hitable>> objects;
