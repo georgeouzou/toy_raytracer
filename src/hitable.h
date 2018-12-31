@@ -77,7 +77,7 @@ bool HitableList::hit(const Ray &r, float tmin, float tmax, HitRecord &rec) cons
 {
 	HitRecord temp_rec;
 	bool hit_any = false;
-	double closest_so_far = tmax;
+	float closest_so_far = tmax;
 	for (size_t i = 0; i < m_hitables.size(); ++i) {
 		if (m_hitables[i]->hit(r, tmin, closest_so_far, temp_rec)) {
 			hit_any = true;
