@@ -1,11 +1,13 @@
 #include <iostream>
 #include <vector>
 #include <limits>
+#include <random>
 
 #include <glm/glm.hpp>
 #include "stb_image_write.h"
 #include "ray.h"
 #include "hitable.h"
+#include "camera.h"
 
 static const char *IMG_PATH = "C:\\Users\\George\\Desktop\\img.png";
 
@@ -28,22 +30,28 @@ int main()
 	std::vector<uint8_t> img(nx * ny * 3);
 	size_t idx = 0;
 
-	glm::vec3 lower_left_corner(-2.0f, -1.0f, -1.0f);
-	glm::vec3 horizontal(4.0f, 0.0f, 0.0f);
-	glm::vec3 vertical(0.0f, 2.0f, 0.0f);
-	glm::vec3 origin(0.0f, 0.0f, 0.0f);
+	Camera cam;
+	std::random_device rd;
+	std::mt19937 mt(rd());
+	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
 
 	std::vector<std::unique_ptr<Hitable>> objects;
 	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(0.0f, 0.0f, -1.0f), 0.5f));
 	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(0.0f, -100.5f, -1.0f), 100));
 	HitableList world(std::move(objects));
 
+	const int num_samples = 100;
+
 	for (int j = ny - 1; j >= 0; j--) {
 		for (int i = 0; i < nx; i++) {
-			float u = float(i) / float(nx);
-			float v = float(j) / float(ny);
-			Ray r(origin, lower_left_corner + u * horizontal + v * vertical);
-			glm::vec3 color = output_color(r, &world);
+			glm::vec3 color(0.0f, 0.0f, 0.0f);
+			for (int s = 0; s < num_samples; s++) {
+				float u = (float(i) + dist(mt)) / float(nx);
+				float v = (float(j) + dist(mt)) / float(ny);
+				Ray ray = cam.generate_ray(u, v);
+				color += output_color(ray, &world);
+			}
+			color /= float(num_samples);
 			img[idx++] = uint8_t(255.99f*color.r);
 			img[idx++] = uint8_t(255.99f*color.g);
 			img[idx++] = uint8_t(255.99f*color.b);
