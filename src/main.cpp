@@ -10,26 +10,21 @@
 #include "ray.h"
 #include "hitable.h"
 #include "camera.h"
+#include "material.h"
 
 static const char *IMG_PATH = "C:\\Users\\George\\Desktop\\img.png";
 
-glm::vec3 random_in_unit_sphere(const std::uniform_real_distribution<float> &dist, 
-	std::mt19937 &engine) 
-{
-	glm::vec3 p;
-	do {
-		p = 2.0f * glm::vec3(dist(engine), dist(engine), dist(engine)) - glm::vec3(1.0f);
-	} while (glm::length2(p) >= 1.0f);
-	return p;
-}
-
-static glm::vec3 output_color(const Ray &r, const Hitable *world, 
-	const std::uniform_real_distribution<float> &dist, std::mt19937 &engine)
+static glm::vec3 output_color(const Ray &r, const Hitable *world, int depth)
 {
 	HitRecord rec;
-	if (world->hit(r, 0.0f, std::numeric_limits<float>::max(), rec)) {
-		glm::vec3 target = rec.p + rec.normal + random_in_unit_sphere(dist, engine);
-		return 0.5f*output_color(Ray(rec.p, target - rec.p), world, dist, engine);
+	if (world->hit(r, 0.001f, std::numeric_limits<float>::max(), rec)) {
+		Ray scattered;
+		glm::vec3 attenuation;
+		if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+			return attenuation * output_color(scattered, world, depth + 1);
+		} else {
+			return glm::vec3(0.0f);
+		}
 	} else {
 		glm::vec3 unit_dir = glm::normalize(r.direction());
 		float t = 0.5f * (unit_dir.y + 1.0f);
@@ -45,13 +40,20 @@ int main()
 	size_t idx = 0;
 
 	Camera cam;
-	std::random_device rd;
-	std::mt19937 mt(rd());
-	std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+	std::shared_ptr<RandomGenerator<float>> rand_gen = std::make_shared<RandomGenerator<float>>();
+
+	std::vector<std::shared_ptr<Material>> materials = {
+		std::make_shared<Lambertian>(glm::vec3(0.8f, 0.3f, 0.3f), rand_gen),
+		std::make_shared<Lambertian>(glm::vec3(0.8f, 0.3f, 0.3f), rand_gen),
+		std::make_shared<Metal>(glm::vec3(0.8f, 0.6f, 0.2f)),
+		std::make_shared<Metal>(glm::vec3(0.8f, 0.8f, 0.8f)),
+	};
 
 	std::vector<std::unique_ptr<Hitable>> objects;
-	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(0.0f, 0.0f, -1.0f), 0.5f));
-	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(0.0f, -100.5f, -1.0f), 100));
+	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(0.0f, 0.0f, -1.0f), 0.5f, materials[0]));
+	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(0.0f, -100.5f, -1.0f), 100.0f, materials[1]));
+	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(1.0f, 0.0f, -1.0f), 0.5f, materials[2]));
+	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(-1.0f, 0.0f, -1.0f), 0.5f, materials[3]));
 	HitableList world(std::move(objects));
 
 	const int num_samples = 100;
@@ -60,10 +62,10 @@ int main()
 		for (int i = 0; i < nx; i++) {
 			glm::vec3 color(0.0f, 0.0f, 0.0f);
 			for (int s = 0; s < num_samples; s++) {
-				float u = (float(i) + dist(mt)) / float(nx);
-				float v = (float(j) + dist(mt)) / float(ny);
+				float u = (float(i) + rand_gen->gen()) / float(nx);
+				float v = (float(j) + rand_gen->gen()) / float(ny);
 				Ray ray = cam.generate_ray(u, v);
-				color += output_color(ray, &world, dist, mt);
+				color += output_color(ray, &world, 0);
 			}
 			// super sampling averaging
 			color /= float(num_samples);

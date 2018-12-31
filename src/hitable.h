@@ -5,11 +5,14 @@
 #include <memory>
 #include "ray.h"
 
+class Material;
+
 struct HitRecord 
 {
 	float t;
 	glm::vec3 p;
 	glm::vec3 normal;
+	Material *mat_ptr;
 };
 
 class Hitable
@@ -21,13 +24,13 @@ public:
 class Sphere : public Hitable
 {
 public:
-	Sphere() {}
-	Sphere(glm::vec3 c, float r) : m_center(c), m_radius(r) {}
+	Sphere(glm::vec3 c, float r, std::shared_ptr<Material> mat) : m_center(c), m_radius(r), m_material(mat) {}
 	virtual bool hit(const Ray &r, float tmin, float tmax, HitRecord &rec) const override;
 
 private:
 	glm::vec3 m_center;
 	float m_radius;
+	std::shared_ptr<Material> m_material;
 };
 
 bool Sphere::hit(const Ray &r, float tmin, float tmax, HitRecord &rec) const
@@ -45,6 +48,7 @@ bool Sphere::hit(const Ray &r, float tmin, float tmax, HitRecord &rec) const
 			rec.t = temp;
 			rec.p = r.pt(temp);
 			rec.normal = (rec.p - m_center) / m_radius;
+			rec.mat_ptr = m_material.get();
 			return true;
 		}
 		temp = (-b + std::sqrt(discr)) / a;
@@ -52,6 +56,7 @@ bool Sphere::hit(const Ray &r, float tmin, float tmax, HitRecord &rec) const
 			rec.t = temp;
 			rec.p = r.pt(temp);
 			rec.normal = (rec.p - m_center) / m_radius;
+			rec.mat_ptr = m_material.get();
 			return true;
 		}
 	}
