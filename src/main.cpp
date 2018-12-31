@@ -47,13 +47,14 @@ int main()
 		std::make_shared<Lambertian>(glm::vec3(0.8f, 0.8f, 0.0f), rand_gen),
 		std::make_shared<Metal>(glm::vec3(0.8f, 0.6f, 0.2f), 1.0, rand_gen),
 		std::make_shared<Metal>(glm::vec3(0.8f, 0.8f, 0.8f), 0.3, rand_gen),
+		std::make_shared<Dielectric>(1.5f, rand_gen),
 	};
 
 	std::vector<std::unique_ptr<Hitable>> objects;
 	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(0.0f, 0.0f, -1.0f), 0.5f, materials[0]));
 	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(0.0f, -100.5f, -1.0f), 100.0f, materials[1]));
 	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(1.0f, 0.0f, -1.0f), 0.5f, materials[2]));
-	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(-1.0f, 0.0f, -1.0f), 0.5f, materials[3]));
+	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(-1.0f, 0.0f, -1.0f), -0.45f, materials[4]));
 	HitableList world(std::move(objects));
 
 	const int num_samples = 100;

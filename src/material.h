@@ -88,5 +88,70 @@ private:
 	std::shared_ptr<RandomGenerator<float>> m_generator;
 };
 
+class Dielectric : public Material
+{
+public:
+	Dielectric(float ri, std::shared_ptr<RandomGenerator<float>> generator) 
+		: m_ref_index(ri), m_generator(generator) {}
+
+	virtual bool scatter(const Ray &ray_in, const HitRecord &rec,
+		glm::vec3 &attenuation, Ray &scattered) const override
+	{
+		const glm::vec3 reflected = glm::reflect(ray_in.direction(), rec.normal);
+		attenuation = glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec3 outward_normal;
+		float ni_over_nt;
+		glm::vec3 refracted;
+		float reflect_prob;
+		float cosine;
+		if (glm::dot(ray_in.direction(), rec.normal) > 0) {
+			outward_normal = -rec.normal;
+			ni_over_nt = m_ref_index;
+			cosine = m_ref_index * glm::dot(ray_in.direction(), rec.normal) / ray_in.direction().length();
+		} else {
+			outward_normal = rec.normal;
+			ni_over_nt = 1.0f / m_ref_index;
+			cosine = -glm::dot(ray_in.direction(), rec.normal) / ray_in.direction().length();
+		}
+		if (refract(ray_in.direction(), outward_normal, ni_over_nt, refracted)) {
+			reflect_prob = schlick(cosine);
+		} else {
+			reflect_prob = 1.0;
+		}
+		if (m_generator->gen() < reflect_prob) {
+			scattered = Ray(rec.p, reflected);
+		} else {
+			scattered = Ray(rec.p, refracted);
+		}
+		return true;
+	}
+
+private:
+	bool refract(const glm::vec3 &v, const glm::vec3 &n, float ni_over_nt, glm::vec3 &refracted) const
+	{
+		glm::vec3 nv = glm::normalize(v);
+		float dt = glm::dot(nv, n);
+		float discr = 1.0f - ni_over_nt * ni_over_nt*(1 - dt * dt);
+		if (discr > 0) {
+			refracted = ni_over_nt * (nv - n * dt) - n * std::sqrt(discr);
+			return true; 
+		} else {
+			return false;
+		}
+	}
+
+	float schlick(float cosine) const
+	{
+		float r0 = (1.0f - m_ref_index) / (1.0f + m_ref_index);
+		r0 = r0 * r0;
+		return r0 + (1.0f - r0) * std::pow((1.0f - cosine), 5.0f);
+	}
+
+
+private:
+	float m_ref_index;
+	std::shared_ptr<RandomGenerator<float>> m_generator;
+};
+
 
 #endif
