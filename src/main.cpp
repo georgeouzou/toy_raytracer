@@ -13,6 +13,7 @@
 #include "material.h"
 
 static const char *IMG_PATH = "C:\\Users\\George\\Desktop\\img.png";
+static const int DEPTH = 8;
 
 static glm::vec3 output_color(const Ray &r, const Hitable *world, int depth)
 {
@@ -20,7 +21,7 @@ static glm::vec3 output_color(const Ray &r, const Hitable *world, int depth)
 	if (world->hit(r, 0.001f, std::numeric_limits<float>::max(), rec)) {
 		Ray scattered;
 		glm::vec3 attenuation;
-		if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+		if (depth < DEPTH && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
 			return attenuation * output_color(scattered, world, depth + 1);
 		} else {
 			return glm::vec3(0.0f);
@@ -34,12 +35,16 @@ static glm::vec3 output_color(const Ray &r, const Hitable *world, int depth)
 
 int main()
 {
-	int nx = 200;
-	int ny = 100;
+	int nx = 1920;
+	int ny = 1080;
 	std::vector<uint8_t> img(nx * ny * 3);
-	size_t idx = 0;
 
-	Camera cam;
+	Camera cam(
+		glm::vec3(-2.0f, 2.0f, 1.0f),
+		glm::vec3(0.0f, 0.0f, -1.0f),
+		glm::vec3(0.0f, 1.0f, 0.0f),
+		90.0f, float(nx) / float(ny)
+	);
 	std::shared_ptr<RandomGenerator<float>> rand_gen = std::make_shared<RandomGenerator<float>>();
 
 	std::vector<std::shared_ptr<Material>> materials = {
@@ -57,10 +62,12 @@ int main()
 	objects.emplace_back(std::make_unique<Sphere>(glm::vec3(-1.0f, 0.0f, -1.0f), -0.45f, materials[4]));
 	HitableList world(std::move(objects));
 
-	const int num_samples = 100;
+	const int num_samples = 32;
 
-	for (int j = ny - 1; j >= 0; j--) {
+    #pragma omp parallel for schedule(dynamic,1)
+	for (int j = 0; j < ny; j++) {
 		for (int i = 0; i < nx; i++) {
+			const int idx = (ny-1-j) * nx + i;
 			glm::vec3 color(0.0f, 0.0f, 0.0f);
 			for (int s = 0; s < num_samples; s++) {
 				float u = (float(i) + rand_gen->gen()) / float(nx);
@@ -72,9 +79,9 @@ int main()
 			color /= float(num_samples);
 			// gamma correct it
 			color = glm::vec3(glm::sqrt(color));
-			img[idx++] = uint8_t(255.99f*color.r);
-			img[idx++] = uint8_t(255.99f*color.g);
-			img[idx++] = uint8_t(255.99f*color.b);
+			img[3*idx+0] = uint8_t(255.99f*color.r);
+			img[3*idx+1] = uint8_t(255.99f*color.g);
+			img[3*idx+2] = uint8_t(255.99f*color.b);
 		}
 	}
 
